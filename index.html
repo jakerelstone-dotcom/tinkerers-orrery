@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Tinkerer's Orrery</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Caveat:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Caveat:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -118,7 +118,7 @@ body.panel-open .side-panel { right: 0; }
 .p-high { background: #b03025; }
 .p-med  { background: var(--gold); }
 .p-low  { background: #5a9e40; }
-.item-text { font-family: 'IM Fell English', serif; font-size: .88rem; line-height: 1.45; color: var(--cream); }
+.item-text { font-family: 'Lora', serif; font-size: .85rem; line-height: 1.5; color: var(--cream); }
 
 .empty-msg { padding: 16px 20px; font-style: italic; font-size: .85rem; color: var(--cream-dim); opacity: .6; }
 
@@ -161,7 +161,7 @@ body.panel-open .side-panel { right: 0; }
 .del-confirm-row.depth-1 { padding-left: 36px; }
 .del-confirm-row.depth-2 { padding-left: 52px; }
 .del-confirm-row span {
-  font-family: 'IM Fell English', serif; font-style: italic;
+  font-family: 'Lora', serif; font-style: italic;
   font-size: .8rem; color: rgba(240,180,160,.85); flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -276,7 +276,7 @@ body.panel-open .side-panel { right: 0; }
   color: var(--gold-dim); text-transform: uppercase;
 }
 .sr-match {
-  font-family: 'IM Fell English', serif; font-size: .9rem; color: var(--cream);
+  font-family: 'Lora', serif; font-size: .88rem; color: var(--cream);
 }
 .sr-match mark {
   background: rgba(232,184,75,.25); color: var(--gold-bright);
@@ -286,7 +286,7 @@ body.panel-open .side-panel { right: 0; }
   font-family: 'Caveat', cursive; font-size: .72rem; color: var(--cream-dim); opacity: .55;
 }
 .search-empty {
-  padding: 2rem; font-family: 'IM Fell English', serif; font-style: italic;
+  padding: 2rem; font-family: 'Lora', serif; font-style: italic;
   color: var(--cream-dim); opacity: .45; text-align: center;
 }
 .search-hint {
@@ -334,10 +334,10 @@ body.panel-open .search-btn { display: none; }
 }
 .note-card-title { font-family: 'Cinzel', serif; font-size: .78rem; letter-spacing: 1px; color: var(--gold-bright); }
 .note-card-date  { font-family: 'Caveat', cursive; font-size: .72rem; color: var(--cream-dim); opacity: .6; flex-shrink: 0; }
-.note-card-body  { font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem; color: var(--cream); line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.note-card-body  { font-family: 'Lora', serif; font-size: .85rem; color: var(--cream); line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
 .note-del-btn    { background: none; border: none; color: rgba(160,60,50,.4); cursor: pointer; font-size: .7rem; padding: 0 2px; flex-shrink: 0; transition: color .15s; line-height: 1; }
 .note-del-btn:hover { color: rgba(220,80,60,.9); }
-.note-empty { font-family: 'IM Fell English', serif; font-style: italic; font-size: .88rem; color: var(--cream-dim); opacity: .5; text-align: center; padding: 2rem 0; }
+.note-empty { font-family: 'Lora', serif; font-style: italic; font-size: .88rem; color: var(--cream-dim); opacity: .5; text-align: center; padding: 2rem 0; }
 .panel-note-add {
   padding: 10px 14px 8px; border-top: 1px solid rgba(200,146,42,.18);
   flex-shrink: 0; display: flex; flex-direction: column; gap: 5px;
@@ -351,7 +351,7 @@ body.panel-open .search-btn { display: none; }
 .note-title-input::placeholder { color: var(--cream-dim); opacity: .45; font-family: 'Caveat', cursive; font-size: .82rem; letter-spacing: 0; }
 .note-title-input:focus { border-color: var(--gold); }
 .note-body-input {
-  font-family: 'IM Fell English', serif; font-size: .85rem;
+  font-family: 'Lora', serif; font-size: .85rem;
   padding: 5px 8px; background: rgba(255,255,255,.05);
   border: 1px solid rgba(200,146,42,.28); color: var(--cream);
   outline: none; border-radius: 2px; width: 100%;
@@ -392,7 +392,7 @@ body.panel-open .search-btn { display: none; }
 .modal-quote { font-family: 'IM Fell English', serif; font-style: italic; font-size: .95rem; color: var(--cream-dim); line-height: 1.7; margin-bottom: 1.2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(200,146,42,.2); }
 .modal h3 { font-family: 'Cinzel', serif; font-size: .82rem; color: var(--gold-dim); letter-spacing: 2px; margin-bottom: .6rem; text-transform: uppercase; }
 .acc-list { list-style: none; margin-bottom: 1rem; max-height: 160px; overflow-y: auto; }
-.acc-list li { padding: .35rem 0; border-bottom: 1px solid rgba(200,146,42,.12); font-family: 'IM Fell English', serif; font-size: .88rem; color: var(--cream); display: flex; align-items: flex-start; gap: .5rem; }
+.acc-list li { padding: .35rem 0; border-bottom: 1px solid rgba(200,146,42,.12); font-family: 'Lora', serif; font-size: .85rem; color: var(--cream); display: flex; align-items: flex-start; gap: .5rem; }
 .acc-list li::before { content: '✦'; color: var(--gold); font-size: .55rem; margin-top: .35em; flex-shrink: 0; }
 .acc-list .empty-acc { opacity: .5; font-style: italic; }
 .modal textarea { width: 100%; font-family: 'Caveat', cursive; font-size: .9rem; padding: .65rem; border: 1px solid rgba(200,146,42,.3); background: rgba(255,255,255,.04); color: var(--cream); resize: vertical; min-height: 80px; outline: none; margin-bottom: .6rem; }
@@ -813,11 +813,11 @@ const SEED_ACCS = [
   "Pebbledash patch continued",
   "Front door glass repair",
 ];
-const DATA_VERSION = 'v8';
+const DATA_VERSION = 'v9';
 const STORAGE_KEY  = 'orrery_' + DATA_VERSION;
 
 // Clear out any older version's data automatically
-['orrery_v1', 'orrery_v2', 'orrery_v3', 'orrery_v4', 'orrery_v5', 'orrery_v6', 'orrery_v7', 'orrery_v0'].forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+['orrery_v1', 'orrery_v2', 'orrery_v3', 'orrery_v4', 'orrery_v5', 'orrery_v6', 'orrery_v7', 'orrery_v8', 'orrery_v0'].forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
 
 let state = { hobbies: JSON.parse(JSON.stringify(HOBBIES)), accs: [] };
 try {
