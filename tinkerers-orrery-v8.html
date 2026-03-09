@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Tinkerer's Orrery</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Caveat:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e0a06;
+  --gold: #c8922a;
+  --gold-bright: #e8b84b;
+  --gold-dim: #7a5518;
+  --amber: #d4821a;
+  --cream: #f0e6cc;
+  --cream-dim: #a09070;
+  --glow: rgba(232,184,75,0.3);
+  --panel-w: 340px;
+}
+
+html, body { width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Caveat', cursive; color: var(--cream); }
+
+/* starfield */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,220,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 60%, rgba(255,255,220,.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 40% 30%, rgba(255,255,220,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 80%, rgba(255,255,220,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 20%, rgba(255,255,220,.5) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 80% 55%, rgba(255,255,220,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 75%, rgba(255,255,220,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 85%, rgba(255,255,220,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 45%, rgba(255,255,220,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 10%, rgba(255,255,220,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 12%, rgba(255,255,220,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5%  40%, rgba(255,255,220,.3) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 75% 90%, rgba(255,255,220,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48% 65%, rgba(255,255,220,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 38%, rgba(255,255,220,.5) 0%, transparent 100%);
+}
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,.7) 100%);
+}
+
+/* TITLE */
+.title-block { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 20; pointer-events: none; transition: left 0.5s ease, transform 0.5s ease; }
+.title-block h1 { font-family: 'Cinzel', serif; font-size: clamp(1rem,2.5vw,1.4rem); color: var(--gold); letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 20px var(--glow); }
+.title-block p  { font-family: 'IM Fell English', serif; font-style: italic; font-size: clamp(.65rem,1.4vw,.85rem); color: var(--cream-dim); margin-top: 2px; letter-spacing: 1px; }
+
+/* CANVAS */
+#orrery { position: fixed; inset: 0; z-index: 1; transition: right 0.5s ease; right: 0; }
+body.panel-open #orrery { right: var(--panel-w); }
+body.panel-open .title-block { left: calc(50% - var(--panel-w)/2); }
+
+/* HINT */
+.hint { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem; color: var(--cream-dim); opacity: .5; z-index: 20; pointer-events: none; transition: opacity .5s; }
+.hint.hidden { opacity: 0; }
+
+/* RELEASE BTN */
+.clear-btn { position: fixed; top: 20px; right: 24px; z-index: 30; background: none; border: 1px solid var(--gold-dim); border-radius: 2px; color: var(--gold-dim); font-family: 'Caveat', cursive; font-size: .85rem; padding: 4px 12px; cursor: pointer; transition: all .2s; letter-spacing: 1px; }
+.clear-btn:hover { border-color: var(--gold); color: var(--gold); }
+.clear-btn.hidden { opacity: 0; pointer-events: none; }
+body.panel-open .clear-btn { right: calc(var(--panel-w) + 16px); }
+
+/* ── SIDE PANEL ── */
+.side-panel {
+  position: fixed; top: 0; right: calc(-1 * var(--panel-w)); bottom: 0;
+  width: var(--panel-w); z-index: 25;
+  background: #100c06;
+  border-left: 1px solid rgba(200,146,42,.3);
+  display: flex; flex-direction: column;
+  transition: right .45s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+body.panel-open .side-panel { right: 0; }
+
+/* panel header */
+.panel-head {
+  padding: 22px 20px 14px;
+  border-bottom: 1px solid rgba(200,146,42,.2);
+  flex-shrink: 0;
+  position: relative;
+}
+.panel-emoji { font-size: 2rem; line-height: 1; display: block; margin-bottom: 6px; }
+.panel-title { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold-bright); letter-spacing: 2px; }
+.panel-sub   { font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem; color: var(--cream-dim); margin-top: 3px; }
+.panel-reminder { margin-top: 8px; font-size: .78rem; color: var(--amber); opacity: .85; }
+
+/* progress bar */
+.panel-progress-wrap { padding: 10px 20px 0; flex-shrink: 0; }
+.panel-progress-track { height: 3px; background: rgba(200,146,42,.15); border-radius: 2px; overflow: hidden; }
+.panel-progress-fill  { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.panel-progress-label { font-size: .72rem; color: var(--gold-dim); margin-top: 4px; font-style: italic; }
+
+/* checklist */
+.panel-list-wrap { flex: 1; overflow-y: auto; padding: 10px 0; }
+.panel-list-wrap::-webkit-scrollbar { width: 4px; }
+.panel-list-wrap::-webkit-scrollbar-thumb { background: rgba(200,146,42,.25); border-radius: 2px; }
+
+.panel-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 20px; cursor: pointer;
+  transition: background .15s;
+  border-bottom: 1px solid rgba(200,146,42,.07);
+}
+.panel-item:hover { background: rgba(200,146,42,.06); }
+.panel-item.done  { opacity: .38; }
+.panel-item.done .item-text { text-decoration: line-through; }
+
+.panel-item input[type=checkbox] { margin-top: .2em; accent-color: var(--gold); width: 13px; height: 13px; flex-shrink: 0; cursor: pointer; }
+.priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: .35em; }
+.p-high { background: #b03025; }
+.p-med  { background: var(--gold); }
+.p-low  { background: #5a9e40; }
+.item-text { font-family: 'IM Fell English', serif; font-size: .88rem; line-height: 1.45; color: var(--cream); }
+
+.empty-msg { padding: 16px 20px; font-style: italic; font-size: .85rem; color: var(--cream-dim); opacity: .6; }
+
+/* nested items */
+.item-children { padding-left: 0; }
+.panel-item.depth-1 { padding-left: 36px; }
+.panel-item.depth-2 { padding-left: 52px; }
+.panel-item.depth-1 .priority-dot,
+.panel-item.depth-2 .priority-dot { width: 5px; height: 5px; }
+.panel-item.depth-1 .item-text,
+.panel-item.depth-2 .item-text { font-size: .82rem; opacity: .88; }
+.nest-btn, .del-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: .75rem; padding: 0 3px; line-height: 1; flex-shrink: 0;
+  margin-top: .15em; transition: color .15s;
+}
+.nest-btn { color: var(--gold-dim); }
+.nest-btn:hover { color: var(--gold); }
+.del-btn { color: rgba(160,60,50,.5); }
+.del-btn:hover { color: rgba(220,80,60,.9); }
+
+/* inline sub-task input row */
+.sub-input-row {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 20px 5px 36px;
+  background: rgba(200,146,42,.05);
+  border-bottom: 1px solid rgba(200,146,42,.1);
+  animation: fadeIn .15s ease;
+}
+.sub-input-row.depth-1 { padding-left: 52px; }
+/* delete confirm row */
+.del-confirm-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 20px 5px 20px;
+  background: rgba(160,40,30,.08);
+  border-bottom: 1px solid rgba(180,60,50,.2);
+  animation: fadeIn .15s ease;
+  flex-wrap: wrap;
+}
+.del-confirm-row.depth-1 { padding-left: 36px; }
+.del-confirm-row.depth-2 { padding-left: 52px; }
+.del-confirm-row span {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: .8rem; color: rgba(240,180,160,.85); flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.del-confirm-row .del-yes {
+  font-family: 'Caveat', cursive; font-size: .78rem;
+  padding: 3px 10px; border: 1px solid rgba(200,70,50,.6);
+  background: rgba(180,50,40,.2); color: rgba(240,130,110,.9);
+  cursor: pointer; border-radius: 2px; white-space: nowrap; flex-shrink: 0;
+  transition: background .15s;
+}
+.del-confirm-row .del-yes:hover { background: rgba(180,50,40,.45); }
+.del-confirm-row .del-no {
+  font-family: 'Caveat', cursive; font-size: .78rem;
+  padding: 3px 10px; border: 1px solid rgba(200,146,42,.25);
+  background: none; color: var(--cream-dim);
+  cursor: pointer; border-radius: 2px; white-space: nowrap; flex-shrink: 0;
+  transition: color .15s;
+}
+.del-confirm-row .del-no:hover { color: var(--cream); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+.sub-input-row input {
+  flex: 1; font-family: 'Caveat', cursive; font-size: .85rem;
+  padding: 3px 6px; background: rgba(255,255,255,.06);
+  border: 1px solid rgba(200,146,42,.35); color: var(--cream);
+  outline: none; border-radius: 2px;
+}
+.sub-input-row input:focus { border-color: var(--gold); }
+.sub-input-row button {
+  font-family: 'Caveat', cursive; font-size: .78rem;
+  padding: 3px 8px; border: 1px solid rgba(200,146,42,.4);
+  background: rgba(200,146,42,.15); color: var(--gold-bright);
+  cursor: pointer; border-radius: 2px; white-space: nowrap;
+}
+.sub-input-row button:hover { background: rgba(200,146,42,.3); }
+.sub-input-row .cancel-sub { background: none; border-color: rgba(200,146,42,.2); color: var(--cream-dim); }
+
+/* add row */
+.panel-add {
+  padding: 10px 14px 14px;
+  border-top: 1px solid rgba(200,146,42,.18);
+  flex-shrink: 0;
+  display: flex; gap: 6px;
+}
+.add-input {
+  flex: 1; font-family: 'Caveat', cursive; font-size: .9rem;
+  padding: 5px 8px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(200,146,42,.28); color: var(--cream);
+  outline: none; border-radius: 2px;
+}
+.add-input::placeholder { color: var(--cream-dim); opacity: .5; }
+.add-input:focus { border-color: var(--gold); }
+.pri-sel {
+  font-family: 'Caveat', cursive; font-size: .85rem;
+  padding: 5px 4px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(200,146,42,.28); color: var(--cream);
+  cursor: pointer; border-radius: 2px;
+}
+.add-btn {
+  font-family: 'Caveat', cursive; font-size: .88rem;
+  padding: 5px 12px; border: 1px solid var(--gold);
+  background: rgba(200,146,42,.18); color: var(--gold-bright);
+  cursor: pointer; border-radius: 2px; transition: background .2s;
+  letter-spacing: .5px;
+}
+.add-btn:hover { background: rgba(200,146,42,.35); }
+
+/* search overlay */
+.search-overlay {
+  display: none; position: fixed; inset: 0; z-index: 40;
+  background: rgba(8,5,2,.88); backdrop-filter: blur(4px);
+  flex-direction: column; align-items: center;
+  padding: 80px 24px 40px;
+}
+.search-overlay.open { display: flex; }
+.search-box-wrap {
+  width: 100%; max-width: 520px;
+  position: relative;
+}
+.search-input {
+  width: 100%; font-family: 'Cinzel', serif; font-size: 1rem;
+  letter-spacing: 2px; padding: 12px 44px 12px 16px;
+  background: rgba(14,10,6,.95);
+  border: 1px solid rgba(200,146,42,.55);
+  border-bottom: 2px solid var(--gold);
+  color: var(--cream); outline: none; border-radius: 2px 2px 0 0;
+}
+.search-input::placeholder { color: var(--cream-dim); opacity: .4; font-family: 'IM Fell English', serif; font-style: italic; letter-spacing: 0; font-size: .95rem; }
+.search-input:focus { border-color: var(--gold-bright); border-bottom-color: var(--gold-bright); }
+.search-close-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--gold-dim); font-size: 1rem;
+  cursor: pointer; padding: 4px; line-height: 1;
+  transition: color .15s;
+}
+.search-close-btn:hover { color: var(--gold); }
+.search-results {
+  width: 100%; max-width: 520px; margin-top: 0;
+  max-height: 55vh; overflow-y: auto;
+  border: 1px solid rgba(200,146,42,.2); border-top: none;
+  border-radius: 0 0 2px 2px;
+  background: rgba(14,10,6,.98);
+}
+.search-result-item {
+  padding: 10px 16px; border-bottom: 1px solid rgba(200,146,42,.1);
+  cursor: pointer; transition: background .15s;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: rgba(200,146,42,.1); }
+.sr-hobby {
+  font-family: 'Cinzel', serif; font-size: .62rem; letter-spacing: 2px;
+  color: var(--gold-dim); text-transform: uppercase;
+}
+.sr-match {
+  font-family: 'IM Fell English', serif; font-size: .9rem; color: var(--cream);
+}
+.sr-match mark {
+  background: rgba(232,184,75,.25); color: var(--gold-bright);
+  border-radius: 2px; padding: 0 2px;
+}
+.sr-type {
+  font-family: 'Caveat', cursive; font-size: .72rem; color: var(--cream-dim); opacity: .55;
+}
+.search-empty {
+  padding: 2rem; font-family: 'IM Fell English', serif; font-style: italic;
+  color: var(--cream-dim); opacity: .45; text-align: center;
+}
+.search-hint {
+  margin-top: 1.2rem; font-family: 'Caveat', cursive; font-size: .82rem;
+  color: var(--cream-dim); opacity: .35; letter-spacing: .5px;
+}
+
+/* search trigger btn */
+.search-btn {
+  position: fixed; top: 20px; left: 24px; z-index: 30;
+  background: none; border: 1px solid var(--gold-dim); border-radius: 2px;
+  color: var(--gold-dim); font-family: 'Caveat', cursive; font-size: .85rem;
+  padding: 4px 12px; cursor: pointer; transition: all .2s; letter-spacing: 1px;
+}
+.search-btn:hover { border-color: var(--gold); color: var(--gold); }
+body.panel-open .search-btn { display: none; }
+
+/* tabs */
+.panel-tabs {
+  display: flex; flex-shrink: 0;
+  border-bottom: 1px solid rgba(200,146,42,.2);
+}
+.tab-btn {
+  flex: 1; font-family: 'Cinzel', serif; font-size: .72rem;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 8px 0; background: none; border: none;
+  color: var(--cream-dim); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+}
+.tab-btn:hover { color: var(--cream); }
+.tab-btn.active { color: var(--gold-bright); border-bottom-color: var(--gold); }
+.notes-wrap {
+  flex: 1; overflow-y: auto; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.note-card {
+  border: 1px solid rgba(200,146,42,.18); border-radius: 2px;
+  padding: 10px 12px; background: rgba(255,255,255,.025);
+  animation: fadeIn .2s ease;
+}
+.note-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 6px;
+  margin-bottom: 5px;
+}
+.note-card-title { font-family: 'Cinzel', serif; font-size: .78rem; letter-spacing: 1px; color: var(--gold-bright); }
+.note-card-date  { font-family: 'Caveat', cursive; font-size: .72rem; color: var(--cream-dim); opacity: .6; flex-shrink: 0; }
+.note-card-body  { font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem; color: var(--cream); line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.note-del-btn    { background: none; border: none; color: rgba(160,60,50,.4); cursor: pointer; font-size: .7rem; padding: 0 2px; flex-shrink: 0; transition: color .15s; line-height: 1; }
+.note-del-btn:hover { color: rgba(220,80,60,.9); }
+.note-empty { font-family: 'IM Fell English', serif; font-style: italic; font-size: .88rem; color: var(--cream-dim); opacity: .5; text-align: center; padding: 2rem 0; }
+.panel-note-add {
+  padding: 10px 14px 8px; border-top: 1px solid rgba(200,146,42,.18);
+  flex-shrink: 0; display: flex; flex-direction: column; gap: 5px;
+}
+.note-title-input {
+  font-family: 'Cinzel', serif; font-size: .75rem; letter-spacing: 1px;
+  padding: 5px 8px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(200,146,42,.28); color: var(--cream);
+  outline: none; border-radius: 2px; width: 100%;
+}
+.note-title-input::placeholder { color: var(--cream-dim); opacity: .45; font-family: 'Caveat', cursive; font-size: .82rem; letter-spacing: 0; }
+.note-title-input:focus { border-color: var(--gold); }
+.note-body-input {
+  font-family: 'IM Fell English', serif; font-size: .85rem;
+  padding: 5px 8px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(200,146,42,.28); color: var(--cream);
+  outline: none; border-radius: 2px; width: 100%;
+  resize: vertical; min-height: 70px; line-height: 1.6;
+}
+.note-body-input::placeholder { color: var(--cream-dim); opacity: .45; font-style: italic; }
+.note-body-input:focus { border-color: var(--gold); }
+.note-add-btn {
+  font-family: 'Caveat', cursive; font-size: .88rem;
+  padding: 5px 12px; border: 1px solid var(--gold);
+  background: rgba(200,146,42,.18); color: var(--gold-bright);
+  cursor: pointer; border-radius: 2px; transition: background .2s;
+  align-self: flex-end; letter-spacing: .5px;
+}
+.note-add-btn:hover { background: rgba(200,146,42,.35); }
+
+/* reflect btn */
+.reflect-btn {
+  font-family: 'Caveat', cursive; font-size: .82rem;
+  padding: 5px 10px; background: none;
+  border: 1px solid var(--gold-dim); color: var(--gold-dim);
+  cursor: pointer; letter-spacing: 1px; width: calc(100% - 28px);
+  transition: all .2s; border-radius: 2px;
+}
+.reflect-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── REFLECTION MODAL ── */
+.backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 50; align-items: center; justify-content: center; padding: 2rem; }
+.backdrop.open { display: flex; }
+.modal {
+  background: #180f06; max-width: 480px; width: 100%;
+  border: 1px solid rgba(200,146,42,.35); border-top: 3px solid var(--gold);
+  padding: 2rem; position: relative; max-height: 80vh; overflow-y: auto;
+}
+.modal-close { position: absolute; top: .8rem; right: 1rem; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gold-dim); }
+.modal-close:hover { color: var(--gold); }
+.modal h2 { font-family: 'Cinzel', serif; font-size: 1.2rem; color: var(--gold-bright); letter-spacing: 2px; margin-bottom: .5rem; }
+.modal-quote { font-family: 'IM Fell English', serif; font-style: italic; font-size: .95rem; color: var(--cream-dim); line-height: 1.7; margin-bottom: 1.2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(200,146,42,.2); }
+.modal h3 { font-family: 'Cinzel', serif; font-size: .82rem; color: var(--gold-dim); letter-spacing: 2px; margin-bottom: .6rem; text-transform: uppercase; }
+.acc-list { list-style: none; margin-bottom: 1rem; max-height: 160px; overflow-y: auto; }
+.acc-list li { padding: .35rem 0; border-bottom: 1px solid rgba(200,146,42,.12); font-family: 'IM Fell English', serif; font-size: .88rem; color: var(--cream); display: flex; align-items: flex-start; gap: .5rem; }
+.acc-list li::before { content: '✦'; color: var(--gold); font-size: .55rem; margin-top: .35em; flex-shrink: 0; }
+.acc-list .empty-acc { opacity: .5; font-style: italic; }
+.modal textarea { width: 100%; font-family: 'Caveat', cursive; font-size: .9rem; padding: .65rem; border: 1px solid rgba(200,146,42,.3); background: rgba(255,255,255,.04); color: var(--cream); resize: vertical; min-height: 80px; outline: none; margin-bottom: .6rem; }
+.modal textarea:focus { border-color: var(--gold); }
+.modal .save-btn { width: 100%; font-family: 'Caveat', cursive; font-size: .9rem; padding: .55rem; border: 1px solid var(--gold-dim); background: none; color: var(--gold-dim); cursor: pointer; letter-spacing: 1px; transition: all .2s; }
+.modal .save-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,146,42,.1); }
+</style>
+</head>
+<body>
+
+<div class="title-block">
+  <h1>The Tinkerer's Orrery</h1>
+  <p>click any orb to activate</p>
+</div>
+
+<canvas id="orrery"></canvas>
+
+<div class="hint" id="hint">tap any body to pull it into focus</div>
+<button class="clear-btn hidden" id="clearBtn" onclick="clearFocus()">✕ release</button>
+<button class="search-btn" id="searchBtn" onclick="openSearch()">⌕ search</button>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-box-wrap">
+    <input class="search-input" id="searchInput" placeholder="search tasks, notes, songs…"
+      oninput="runSearch(this.value)"
+      onkeydown="if(event.key==='Escape')closeSearch()">
+    <button class="search-close-btn" onclick="closeSearch()">✕</button>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+  <p class="search-hint">esc to close · click a result to open that hobby</p>
+</div>
+
+<!-- SIDE PANEL -->
+<div class="side-panel" id="sidePanel">
+  <div class="panel-head">
+    <span class="panel-emoji" id="panelEmoji"></span>
+    <div class="panel-title"  id="panelTitle"></div>
+    <div class="panel-sub"    id="panelSub"></div>
+    <div class="panel-reminder" id="panelReminder"></div>
+  </div>
+  <div class="panel-progress-wrap">
+    <div class="panel-progress-track">
+      <div class="panel-progress-fill" id="panelProgressFill"></div>
+    </div>
+    <div class="panel-progress-label" id="panelProgressLabel"></div>
+  </div>
+  <!-- TABS -->
+  <div class="panel-tabs">
+    <button class="tab-btn active" id="tabTasks" onclick="switchTab('tasks')">Tasks</button>
+    <button class="tab-btn"        id="tabNotes" onclick="switchTab('notes')">Notes</button>
+  </div>
+  <!-- TASKS PANE -->
+  <div id="panetasks">
+    <div class="panel-list-wrap" id="panelList"></div>
+    <div class="panel-add">
+      <input class="add-input" id="addInput" placeholder="new idea or task…" onkeydown="if(event.key==='Enter')addItem()">
+      <select class="pri-sel" id="priSel">
+        <option value="high">↑</option>
+        <option value="med" selected>·</option>
+        <option value="low">↓</option>
+      </select>
+      <button class="add-btn" onclick="addItem()">Add</button>
+    </div>
+  </div>
+  <!-- NOTES PANE -->
+  <div id="panenotes" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div class="notes-wrap" id="notesList"></div>
+    <div class="panel-note-add">
+      <input class="note-title-input" id="noteTitleInput" placeholder="Note title…" onkeydown="if(event.key==='Enter')document.getElementById('noteBodyInput').focus()">
+      <textarea class="note-body-input" id="noteBodyInput" placeholder="Write freely — session recaps, ideas, lore, anything…"></textarea>
+      <button class="note-add-btn" onclick="addNote()">Save Note</button>
+    </div>
+  </div>
+  <button class="reflect-btn" onclick="openReflect()">✦ reflect &amp; remember</button>
+</div>
+
+<!-- REFLECTION MODAL -->
+<div class="backdrop" id="reflectBackdrop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeReflect()">✕</button>
+    <h2>A Moment to Breathe</h2>
+    <p class="modal-quote" id="reflectQuote"></p>
+    <h3>Things You've Accomplished</h3>
+    <ul class="acc-list" id="accList"></ul>
+    <p style="font-size:.78rem;color:var(--amber);margin-bottom:.4rem;font-style:italic">Add something you're proud of:</p>
+    <textarea id="accInput" placeholder="Something I've made, learned, or finished…"></textarea>
+    <button class="save-btn" onclick="saveAcc()">Save to Memory</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const HOBBIES = [
+  {
+    id: 'music', emoji: '🎙️', label: 'HotFog', sub: 'Music Recording',
+    desc: 'Tracking, mixing, and the quiet hours with headphones on.',
+    reminder: 'Hours go fast in the studio.',
+    color: '#c0784a', size: 22, speed: 0.000155,
+    items: [
+      { text: 'Record live room drum tracks for Track 3', done: false, p: 'high', children: [] },
+      { text: 'Experiment with reverb chain on vocals',   done: false, p: 'high', children: [] },
+      { text: 'Finish mixing the bass on Track 1',        done: true,  p: 'med',  children: [] },
+      { text: 'Write chord progression for ambient piece',done: false, p: 'med',  children: [] },
+      { text: 'Organize sample library by mood',          done: false, p: 'low',  children: [] },
+      { text: 'Erica and Teebs — Bass Lessons', done: false, p: 'med', children: [
+        { text: 'RH walking',                    done: false, p: 'med', children: [] },
+        { text: 'Tabs and chord sheets',          done: false, p: 'med', children: [] },
+        { text: 'Mapping out a song to learn',    done: false, p: 'med', children: [] },
+        { text: 'Review checked items',           done: false, p: 'med', children: [] },
+        { text: 'Strap and hands',                done: false, p: 'med', children: [] },
+        { text: '3 songs to learn',               done: false, p: 'med', children: [] },
+        { text: 'Hear the bass',                  done: false, p: 'med', children: [] },
+        { text: 'Language of bass',               done: false, p: 'med', children: [] },
+        { text: 'Sing the bassline',              done: false, p: 'med', children: [] },
+        { text: 'Bob Marley — 3 Little Birds',    done: false, p: 'med', children: [] },
+        { text: 'Tuning',                         done: false, p: 'med', children: [] },
+      ]},
+
+    ],
+    notes: [
+      {
+        title: 'Blues Versions — Set List',
+        date: 'Mar 2026',
+        body: `Songs arranged as blues/acoustic versions for HotFog sets.\n\nKing of Pain — The Police\nMr. Jones — Counting Crows\nRaspberry Beret — Prince\nAre You Gonna Go My Way — Lenny Kravitz\nEvery Morning — Sugar Ray\nBlame It on the Rain — Milli Vanilli\nDon't Turn Around — Ace of Base\nLosing My Religion — REM\nTrue Blue — Madonna\nI Wanna Dance With Somebody — Whitney Houston\nEmotions — Mariah Carey\nStevie Wonder — (song TBD)\nWanna Be Startin Something — Michael Jackson\nBack to Black — Amy Winehouse\nAC/DC — (song TBD)\nHand in My Pocket — Alanis Morissette\nOne Day — Björk\nIf It Makes You Happy — Sheryl Crow\nSmooth Operator — Sade\nShort Skirt/Long Jacket — Cake\nYou Turn the Screws — Cake\nGirls Just Want to Have Fun — Cyndi Lauper\nOpposites Attract — Paula Abdul\nGet Outta My Dreams — Billy Ocean\n9 to 5 — Dolly Parton\nBill Withers — (song TBD)\nIn the Air Tonight — Phil Collins\nSledgehammer — Peter Gabriel\nSussudio — Phil Collins\nI Try — Macy Gray\nThe Tide Is High — Blondie\nWaterfalls — TLC\nAll I Wanna Do — Sheryl Crow\nWalking on Broken Glass — Annie Lennox\nSave Tonight — Eagle-Eye Cherry\nMambo No. 5 — Lou Bega\nTubthumping — Chumbawamba\nOne More Time — Britney Spears\nJust a Friend — Biz Markie\nYou Make Me Feel Like a Natural (Husband) — Aretha Franklin`
+      },
+      {
+        title: 'Songs to Learn',
+        date: 'Mar 2026',
+        body: `✓ = done\n\n✓ One Meatball\nTennessee Jed — Grateful Dead\nMistress\nHold On\nSomebody Pick Up My Pieces\nWild Ox Moan\nBlue Sky — Allman Brothers\n✓ Drifter in the Dark\nWho's Gonna Ride Your Wild Horses — U2\nThe Old Home Place\nIt Ain't Easier\nTuppins a Bag\nLOTR Ring Theme\nCountry Roads (LOTR lyrics) — John Denver\nGlass Onion — Beatles\nShallows\nIslands in the Stream — Dolly Parton & Kenny Rogers\n✓ La Isla Bonita — Madonna (rewrite in progress)\nGoodbye Yellow Brick Road — Elton John\nCoax Me — Sloan\nClaire\nAfrobeats — (genre/TBD)\nPump It Up — Elvis Costello`
+      },
+      {
+        title: 'Kick Drum Tunnel — SM58 Setup',
+        date: 'Mar 2026',
+        body: `Build a box/tunnel from rigid insulation panels around the kick and mic.\n\nWhy it works: Cuts cymbal/snare bleed, captures low-end energy that would otherwise dissipate, and lets you push the mic back for a roomier sound while keeping isolation.\n\nSM58 specifics: Proximity effect boosts ~100Hz (warmth). Natural presence at 3–5kHz captures beater attack. Will need EQ — boost sub-lows below 60Hz, notch boxy mids at 300–500Hz.\n\nSetup:\n- Angle panels slightly — parallel walls cause flutter echo\n- Seal gaps against the drum shell; drape a blanket over the top\n- Mic near beater = click and attack\n- Mic back of tunnel = boom and weight`
+      },
+      {
+        title: '5-Mic Setup — Full Kit (10x10 Room)',
+        date: 'Mar 2026',
+        body: `GXL3000 x2 overheads · SM57 snare · SM58 kick · P48 room\n\nOverheads (inputs 1&2): Glyn Johns or Recorderman. Measure snare-to-mic distance identically on both to avoid phase issues. One mic above snare (~3–4ft), second above floor tom — both pointing at snare center.\n\nSM57 snare: 1.5" above rim, angled toward center. Industry standard for attack and crack.\n\nSM58 kick: Just inside port hole (or outside front head if no hole). Closer = more attack, further = more low-end.\n\nP48 room: Corner or a few feet in front, pointing away from kit. Adds depth and glue.\n\nKey tips: Check phase in mono. Aim for -18dB on hard hits. Small room — treat with panels/bass traps if boxy.`
+      },
+      {
+        title: '2-Mic Setup — Minimalist Overheads',
+        date: 'Mar 2026',
+        body: `GXL3000 pair into inputs 1&2, 48V phantom on.\n\nGlyn Johns: One mic above kit angled at snare, second to the side above floor tom — equal distance from snare center on both.\n\nRecorderman: One above snare (~3–4ft), one above drummer's shoulder — equal distance from snare.\n\nBest for capturing the kit's natural balance and room character. Check mono compatibility — adjust until sound is full in both stereo and mono.\n\nAlternative: One GXL3000 as mono overhead + SM57 or SM58 on kick for more low-end control.`
+      },
+      {
+        title: '4-Mic Signal Chain — ART Tube MPs into 4i4',
+        date: 'Mar 2026',
+        body: `GXL3000s → XLR inputs 1&2 (engage 48V phantom).\nSM57 + SM58 → ART Tube MP XLR inputs → 1/4" TRS out → line inputs 3&4 on rear of 4i4.\n\nSet all levels on the ART preamps — inputs 3&4 have no gain on the 4i4 itself. Aim for -18dB on hard hits in Reaper.\n\nResult: 4 separate tracks in Reaper, full individual control over kick, snare, and both overheads.`
+      },
+      {
+        title: 'Voice-to-MIDI in Reaper — ReaTune Method',
+        date: 'Mar 2026',
+        body: `Real-time (while recording):\n1. Create Voice track (mic input) + Instrument track (VSTi)\n2. Voice track: add ReaTune FX → Tuner tab → check "Send MIDI events when pitch changes"\n3. Route Voice → Instrument track, set Audio to None (MIDI only)\n4. Instrument track: right-click record-arm → Record: Output (MIDI)\n5. Hit record and sing — melody captures as MIDI blocks\n\nFrom existing audio:\n1. Add ReaTune to vocal track, check "Send MIDI events when pitch changes"\n2. Right-click audio clip → "Apply track/take FX to items as new take (MIDI output)"\n3. Drag new MIDI take to its own track\n\nOptimization:\n- ReaTune window size ~50ms = more responsive pitch detection\n- ReaTune Correction tab, Attack 10–25ms = cleaner MIDI transcription\n- Double-click MIDI item → Piano Roll → Q to quantize timing`
+      },
+      {
+        title: 'Roland A-500PRO — Setup & Mapping in Reaper',
+        date: 'Mar 2026',
+        body: `Keys and pads work immediately as class-compliant MIDI. Knobs and faders need manual setup.\n\nSetup steps:\n1. Install latest USB driver from Roland website\n2. Reaper → Options > Preferences > Audio > MIDI Devices → right-click A-500PRO → "Enable input" + check "Enable input for control messages"\n3. Map controls: open Actions list (? key) → find function → click Add → move physical knob/fader to assign\n4. Save presets in A-Pro Editor software for per-project recall\n\nVST/plugin control: Right-click any virtual knob in a plugin → "Learn CC" → move the physical knob to link it.\n\nNotes: No pre-built Reaper profile — all mapping is manual but very flexible. Roland FPT keeps latency low for live playing.`
+      },
+      {
+        title: 'Song — Twenty Years (feels like "My Old Guitar")',
+        date: 'Mar 2026',
+        body: `Starts on turnaround, walk down from E to B\n(BG vocals echoing)\n\nE9\nI been drivin (drivin)\nIn a haze for way too long\nloyalty and chivalry\ngot the best of me\nA9\nBut now I see (I see)\nthat I was doin it for you\nand not for me\nThinkin all was right (right)\nTryin day and night (night)\nServin up to you any way I can\n(All) Babe I've carried you for twenty years\n(Turnaround x3)\n\nE9\nYea I was a hound dog (bow wow)\nSniffin round for your crumbs\nGoin round in circles\nAlways felt like I was chasin...\nA9\nMy own tail (my tail)\nAfraid that I just might say\nthe wrong thing\nDamn your pendulum (what?)\nSwinging back and forth (whoa!)\nNo way to get off that I could see\n(All) Babe I've carried you for twenty years\n(Turnaround x3)\n\nSolo over full progression\n\nE9\nThe long decline (way down)\nwe've gone our separate ways\nCivility and honesty\nfor my part anyways\nA9\nNow I've a new love (oh yea)\nBold and strong and true\nFillin my heart all up to burstin (hmm)\nand always got me thirstin (uh)\nThere aint no room for you here anymore\n(All) Babe I've carried you for twenty years...\n(With Turnaround x3)...\nIts time to go, its time to go, its time to go\nuh huh\n\nSolo over full progression\nBabe I've carried you for twenty years\n(Turnaround x3 + Chazz ending)`
+      },
+      {
+        title: 'Song — La Isla Bonita (Mangia Insalata — rewrite in progress)',
+        date: 'Mar 2026',
+        body: `Last night I dreamt of San Pedro\nI made a sa-lad with some Pedro\nJust like I'd never gone, I knew the song\nNot like I'd done before, those were such a bore\nA young girl with eyes like the desert\nThese green leaves were bursting with flavour\nIt all seems like yesterday, not far away\nIts like a dream to me, how could this be?\n\nTropical the island breeze\nNext day I tried the Island Breeze\nAll of nature wild and free\nAll my tastebuds wild and free\nThis is where I long to be\nThis is what I long to eat\nLa isla bonita\nMangia Insalata\n\nAnd when the samba played\nMy hunger wants for nothing else\nThe sun would set so high\n60 flavours on the shelf\nRing through my ears and sting my eyes\nYour Spanish lullaby\n\nI fell in love with San Pedro\nWarm wind carried on the sea, he called to me\nTe dijo: "te amo"\nI prayed that the days would last, they went so fast\n\nTropical the island breeze\nAll of nature wild and free\nThis is where I long to be\nLa isla bonita\n\nAnd when the samba played\nThe sun would set so high\nRing through my ears and sting my eyes\nYour Spanish lullaby\n\nI want to be where the sun warms the sky\nWhen it's time for siesta, you can watch them go by\nBeautiful faces, no cares in this world\nWhere a girl loves a boy, and a boy loves a girl\n\nLast night I dreamt of San Pedro\nIt all seems like yesterday, not far away\n\nTropical the island breeze\nAll of nature wild and free\nThis is where I long to be\nLa isla bonita\n\nAnd when the samba played\nThe sun would set so high\nRing through my ears and sting my eyes\nYour Spanish lullaby\n\nDa-da, da-da-da\nTropical the island breeze\nAll of nature wild and free\nThis is where I long to be\nLa isla bonita\n\nAnd when the samba played\nThe sun would set so high\nRing through my ears and sting my eyes\nYour Spanish lullaby\n\nLa-la-la-la-la-la-la\nTe dijo: "te amo"\nLa-la-la-la-la-la-la\nEl dijo que te ama\nPa-pa-ra-pa-pa, pa-pa-pa-pa (ah-ah)\nAh-ah, ah-ah\nLa isla bonita\nAh-ah, ah-ah, ah-ah`
+      },
+    ],
+  },
+  {
+    id: 'woodworking', emoji: '🪵', label: 'The Bench', sub: 'Woodworking',
+    desc: 'Sawdust, joints, and things that last.',
+    reminder: 'Shop time can disappear.',
+    color: '#8B5e3c', size: 26, speed: 0.00011,
+    items: [
+      { text: 'Mill rough lumber for cabinet sides',   done: false, p: 'high', children: [] },
+      { text: 'Cut mortise & tenon joints for shelf',  done: false, p: 'high', children: [] },
+      { text: 'Apply first finish coat on side table', done: true,  p: 'med',  children: [] },
+      { text: 'Tune up the hand planes',               done: false, p: 'med',  children: [] },
+      { text: 'Sketch design for next tool tote',      done: false, p: 'low',  children: [] },
+      { text: 'Valet and Carving', done: false, p: 'med', children: [
+        { text: 'Prep some softwood for trial',                       done: false, p: 'med', children: [] },
+        { text: 'Make some router samples for trough options',        done: false, p: 'med', children: [] },
+        { text: 'Make new valet tray designs',                        done: false, p: 'med', children: [] },
+        { text: 'Vac setup for plunge router',                        done: false, p: 'med', children: [] },
+        { text: 'Triple tier thick designs — Chutney style',          done: false, p: 'low', children: [] },
+        { text: 'Try carving tools in softwood and hardwood',         done: false, p: 'med', children: [] },
+      ]},
+      { text: 'Pickup logs @ Kerschels',               done: false, p: 'high', children: [] },
+      { text: 'Deal with extras — post or donate',     done: false, p: 'med',  children: [] },
+      { text: 'Make maple workbench',                  done: false, p: 'med',  children: [] },
+      { text: 'Process logs',                          done: false, p: 'high', children: [] },
+      { text: 'Shutters', done: false, p: 'med', children: [
+        { text: 'Prep',    done: false, p: 'med', children: [] },
+        { text: 'Paint',   done: false, p: 'med', children: [] },
+        { text: 'Install', done: false, p: 'med', children: [] },
+      ]},
+      { text: 'Serving boards', done: false, p: 'med', children: [
+        { text: 'With under-lights and Bluetooth speaker',     done: false, p: 'med', children: [] },
+        { text: '2-tier boards with turned lightsaber risers', done: false, p: 'low', children: [] },
+      ]},
+      { text: 'Stave drum kits',          done: false, p: 'low', children: [] },
+      { text: 'Platform beds',            done: false, p: 'low', children: [] },
+      { text: 'Pot racks',                done: false, p: 'low', children: [] },
+      { text: 'End tables',               done: false, p: 'low', children: [] },
+      { text: 'Tree crotch art',          done: false, p: 'low', children: [] },
+      { text: 'Tree crotch tables',       done: false, p: 'low', children: [] },
+      { text: 'Serving/cooking utensils', done: false, p: 'low', children: [] },
+      { text: 'Wood and pipe things',     done: false, p: 'low', children: [] },
+      { text: 'Rocking chairs',           done: false, p: 'low', children: [] },
+      { text: 'Light fixtures',           done: false, p: 'low', children: [] },
+      { text: 'Kat trees/houses',         done: false, p: 'low', children: [] },
+      { text: 'Coasters',                 done: false, p: 'low', children: [] },
+      { text: 'Dice trays',               done: false, p: 'low', children: [] },
+      { text: 'DM screen',                done: false, p: 'low', children: [] },
+    ],
+    notes: [
+      {
+        title: 'Kershel Walnut — Lumber Inventory',
+        date: 'Mar 2026',
+        body: `6ft x 16"\n6ft x 20"\n6ft x 12"\n3ft x 14"\nOthers: 3–4ft`
+      },
+    ],
+  },
+  {
+    id: 'garden', emoji: '🌿', label: 'Courtyard', sub: 'Gardening',
+    desc: 'Growing, preserving, tending. The slow work of land.',
+    reminder: 'Good rhythm — they can join you.',
+    color: '#4a7c4e', size: 20, speed: 0.00019,
+    items: [
+      { text: 'Plant spring bulbs along the north wall', done: false, p: 'high', children: [] },
+      { text: 'Build raised bed for kitchen herbs',      done: false, p: 'high', children: [] },
+      { text: 'Prune the climbing roses',                done: true,  p: 'med',  children: [] },
+      { text: 'Compost the autumn leaves pile',          done: false, p: 'med',  children: [] },
+      { text: 'Research heirloom tomato varieties',      done: false, p: 'low',  children: [] },
+      { text: 'Move kayaks',                             done: false, p: 'med',  children: [] },
+      { text: 'Reorganize garbage closet',               done: false, p: 'med',  children: [] },
+      { text: 'Patio pergola',                           done: false, p: 'med',  children: [] },
+      { text: 'Dig pond',                                done: false, p: 'low',  children: [] },
+      { text: 'Install water lines',                     done: false, p: 'med',  children: [] },
+      { text: 'Install electrical system',               done: false, p: 'med',  children: [] },
+    ],
+    notes: [
+      {
+        title: 'Irrigation & Pond Planting Notes',
+        date: 'Mar 2026',
+        body: `IRRIGATION CONTROL OPTIONS:\n- 120V standard outlet with simple WiFi plug\n- 120V/12V transformer with time delay switch\n- 12V inline pump with partnered solenoid valve\n- 1/4" adjustable drip heads\n- Use unions to aid maintenance\n- Add an air port for winterizing\n\nINDIGENOUS PLANT CANDIDATES:\n- Blue Flag Iris *\n- Cardinal Flower\n- Swamp Milkweed\n- Pickerelweed *\n- Arrowhead *\n- Marsh Marigold\n- Joe-Pye Weed\n- Blue Vervain\n\n(* = shortlisted)`
+      },
+    ], emoji: '⚔️', label: 'Daggerheart', sub: 'Collaborative Storytelling',
+    desc: 'Shared worlds, collaborative story, and the people you build them with.',
+    reminder: 'Who at this table could be yours too?',
+    color: '#4a6a8a', size: 24, speed: 0.000085,
+    items: [
+      { text: 'Prep session: map the Thornwood ruins',           done: false, p: 'high', children: [] },
+      { text: 'Create NPC backstories for merchant guild',       done: false, p: 'high', children: [] },
+      { text: 'Finish reading Daggerheart core rules',           done: true,  p: 'med',  children: [] },
+      { text: "Write notes on the party's last adventure",       done: false, p: 'med',  children: [] },
+      { text: 'Design custom card for Rogue subclass',           done: false, p: 'low',  children: [] },
+    ],
+    notes: [
+      {
+        title: 'Session Planning — Port to Daggerheart',
+        date: 'Jul 15, 2025',
+        body: `Merge modules and homebrew, narrate through ghost ship and bronze dragon encounters.\n\n- Port Leilon backdrop → Axeholm\n- Green dragon + undead attack w/ druids\n- Feralhi Stornsworn + necro counterpart\n- Encounter pt 2 with Black Bone Dragon (deep dragon?)\n\nWhy are they attacking Axeholm?\n- Unknown power within?\n- Eliminate a nearby foe / establish stronghold near Neverwinter?\n- Control access to Underdark?\n- Focus of Talos and god of death\n- History of Axeholm: original attempt for undead to hold it, dark elf turned to banshee\n\nBuild encounters: gauge damage output of PC and monster groups per round.\n\nAxeholm defences:\n- Ballistas w/ 3 NPCs each, 3/4 cover\n- Inc. dwarves + melee reserves\n- Party knows defense tactics: portcullis, horn signals\n\nPort characters and setting to DH:\n- Make char sheets for Axeholm NPCs and adversaries\n- Possibly play 1-shot as NPC\n- Conflict with Zentarim network re: weapons trade\n\nPC background hooks:\n- Gimbly: community survivor or perpetrator?\n- Vallon: celestial origins, fallen causes\n- Erabyn: matron of Raven quest`
+      },
+      {
+        title: 'Current State — Threats, Debts & Hooks',
+        date: 'Campaign notes',
+        body: `CURRENT KNOWN THREATS:\n- Ghost ship\n- Bronze leads to the Green\n- Undead threat to Leilon\n- Hints of undead dragon\n- Mysterious door in Gnomengard\n\nKNOWN DEBTS:\n- To Dagult Neverember for occupation of Axeholm\n- Erabyn to Raven Queen for resurrection and new hand\n- Erabyn to Gnomengard for mage glider\n\nUNKNOWN THREATS:\n- Green dragon in Kryptgarden Forest\n- Necromancer activities in Mere of Dead Men\n\nDEEP DRAGON BEYOND AXEHOLM MINES:\n- Drow civilization revealed after mines reopened\n- Drow control network of Underdark servants\n- Umber hulks create passages\n- Drow fortress\n- Other access points to Underdark from Kryptgarden side, foothills north of Mere`
+      },
+      {
+        title: 'Session — Waterdeep & Undermountain',
+        date: 'Aug 21 (approx)',
+        body: `After portal at Thunder Cliffs, party reunited in Waterdeep. Visited Raven temple — Erabyn and Vallon made an offering, both had vision of ghost ship. Made trade contact with Kathra's nephew at Dwarven Guildhall.\n\nTattoo attempt at Sparking Pearl — Fnipper touched the pearl, asked to leave. Found Yommi's: short Satyr, long blonde ringlets (sheep-like), small curled horns. Session ended before more happened.\n\nTO DO IN WATERDEEP: Tattoos (Yommi's), Yawning Portal, pub crawl, magic shoppe, investigate water portal mechanics.\n\nINTRIGUE: Party recognized and followed everywhere. Acts of sabotage undermining credibility. Zentarim presence — Jamna Gleamsilver assists with thugs or guards.\n\nLast session: about to engage at ghost ship. Party has knowledge of green dragon in Kryptgarden and bronze dragon near Neverwinter.\nUndermountain: about to meet group disguised as vampires.`
+      },
+      {
+        title: 'Session — May 28, 2022 (8hr Epic)',
+        date: 'May 28, 2022',
+        body: `Failed resurrection (spirit unwilling), epic funeral, tearful mourning, late night group spa with mind-altering myconids, rage-filled weapon smithing (Raven Flail), interviewing a new candidate, sparring with the new candidate, break for dinner, then a town visit followed by a late-night CR9 Rot Troll at the campsite — big flashy spell attracted 2 more and nearly wiped the party.\n\nDiscovered Aaracocra encampment at top of cliffs. Manticores present.`
+      },
+      {
+        title: 'Session — May 15, 2022 (Frogwood Falls)',
+        date: 'May 15, 2022',
+        body: `Frogwood died by a star-spawned mangler. Her body was retrieved by the party and brought back to Axeholm, preserved by Gentle Repose. Her hands and feet are "damaged."`
+      },
+      {
+        title: 'Battle for the Mines — Completed',
+        date: 'Campaign notes',
+        body: `- Quagoths fought for their territory\n- Leader killed by Erabyn, thrown down by Vallon — Quagoths broke and retreated\n- Gnome auto-ballista ready: 3-day install\n- Hiding drow scouts observed but didn't engage — Shenjan sees them\n- Myconids rescued, brought back to Axeholm to recover\n- Dwarf army left behind to secure the mines and fortify the main entrance`
+      },
+      {
+        title: 'NPC — Gimbly Backstory',
+        date: 'NPC notes',
+        body: `- Young deep gnome\n- Returned home to find whole clan dead and missing, unknown attackers\n- In a daze, ventured up to the surface\n- Met the Dark Feathers while fighting off trolls`
+      },
+      {
+        title: 'World Notes — Axeholm & Region',
+        date: 'Campaign notes',
+        body: `Jeni scouts the neighborhood — finds caves, evidence of hill giants, wild weather, random undead activity.\n\nRETURNING MYCONIDS: 2-day journey into Underdark. Reward or request from sovereign TBD.\n\nREPORT FROM DWARVEN CAPTAINS: Found last mining activities, remnants of tools, evidence of ores, natural passageways further underground. Maps to be made.\n\nUPHEAVAL EVENTS (planned): Major undead attack on Axeholm while party is away. Significant losses. Possible Dark Feather intervention. Deep dragon disguised as drow high priestess.\n\nEncourage each Axeholm citizen to train in self-defense.\nVallon wants to make Flail of the Matron — extra damage vs undead.`
+      },
+      {
+        title: 'Campaign Overview — Party & Completed Arcs',
+        date: 'Campaign notes',
+        body: `Vallon + Frogwood: dealt with undead and kobolds.\nErabyn: with uncle Myc.\n\nCOMPLETED:\n- Myconids rescued, at Axeholm ✓\n- Talos threat at Wayside Tavern — defeated ✓\n- Talos threat / Thunder Cliffs — done ✓`
+      },
+      {
+        title: 'Character Sketch — Gnak the Rogue',
+        date: 'Mar 2026',
+        body: `LIVING ARMOUR (Mighty Mites): Symbiont micro-insects compose the armour and provide personal recovery, armour repair, and renewal of wings.\n\nEvasion flavour: mites sense incoming blows and "push" Gnak to avoid a hit, or bunch up and sacrifice some of themselves to lessen damage.\n\nFeathery antennae.\n\nShadowstep flavour — like pupation: leave behind a husk that quickly dissolves into magical dust.\nOR: morph/camo transition from one shadow to new shadow.\n\nColouration: mottled and chameleon-like — flavours hide ability.\n\nWeapon flavour: daggers = proboscis / Slippery William tongue of barbs.`
+      },
+    ],
+  },
+  {
+    id: 'home', emoji: '🏡', label: 'This Old House', sub: 'Home Projects',
+    desc: 'The house as a living project — always something worth improving.',
+    reminder: 'Loop them in on this one.',
+    color: '#7a6a3a', size: 21, speed: 0.00014,
+    items: [
+      { text: 'Replace weatherstripping on the back door', done: false, p: 'high', children: [] },
+      { text: 'Patch and repaint the hallway ceiling',     done: false, p: 'high', children: [] },
+      { text: 'Service the furnace filters',               done: true,  p: 'med',  children: [] },
+      { text: 'Fix the squeaky third stair tread',         done: false, p: 'med',  children: [] },
+      { text: 'Plan the deck refresh for spring',          done: false, p: 'low',  children: [] },
+      { text: 'HotFog Studio', done: false, p: 'med', children: [
+        { text: 'Shelves', done: false, p: 'med', children: [] },
+      ]},
+      { text: 'Kitchen', done: false, p: 'med', children: [
+        { text: 'Design new unit over radiator',  done: false, p: 'med', children: [] },
+        { text: 'Build and install new unit',     done: false, p: 'med', children: [] },
+        { text: 'Rework kitchen storage',         done: false, p: 'med', children: [] },
+        { text: 'Rework staging storage',         done: false, p: 'med', children: [] },
+      ]},
+      { text: "Mom's House", done: false, p: 'high', children: [
+        { text: 'Living room ceiling patch and paint', done: false, p: 'high', children: [] },
+        { text: 'Lawn sign setup',                     done: false, p: 'med',  children: [] },
+        { text: 'Pictures',                            done: false, p: 'med',  children: [] },
+        { text: 'For sale prep',                       done: false, p: 'high', children: [] },
+      ]},
+      { text: 'Eave rake repairs and paint', done: false, p: 'med', children: [] },
+    ],
+    notes: [],
+  },
+];
+
+const REFLECT_QUOTES = [
+  "Look back at the path you've walked. Each thing you've built, learned, or tended is a brushstroke in the painting of your life.",
+  "Every completed task is a happy little tree you planted. Step back and see the whole forest you've grown.",
+  "You've done more than you remember. This is a good moment to let yourself feel proud.",
+  "The things we make with our hands and hearts leave marks on the world that never fully fade.",
+  "Pause here, friend. Count the beautiful things you have brought into being.",
+  "Sometimes we need to put down the tools and just appreciate what our hands have already created."
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const SEED_ACCS = [
+  "Take down instruments",
+  "Get rid of piano — Elise and Dan",
+  "Take down record/games rack",
+  "Repaint",
+  "Patch walls",
+  "Wireless headphone solution",
+  "Mic boom wall mounts",
+  "Setup red toolbox",
+  "Remove drawers from under desk",
+  "Make storage unit on castors",
+  "Install wall strapping",
+  "Install instrument hangers",
+  "Insulate wall",
+  "Clad wall",
+  "Mill jambs and trim",
+  "Install jambs",
+  "Prep door parts",
+  "Assemble door",
+  "Finish door",
+  "Move desk",
+  "Install door, hardware, and trim",
+  "Make door for Cistern",
+  "Scrape walls",
+  "Seal walls and floor",
+  "Install boiler wall gussets",
+  "Reinstall ceiling",
+  "Make door for Cantina",
+  "Cantina — fully empty and rebuild",
+  "Rework Cistern storage racks",
+  "Rework Cantina storage",
+  "Rework basement storage racks",
+  "Finish fence topper",
+  "Gut window shelves",
+  "Rework tool storage",
+  "Make lumber racks",
+  "Finish drain replacement",
+  "Back porch tidy",
+  "Dump run",
+  "Install fence topper",
+  "Plant trees",
+  "Greenhouse",
+  "Install brick",
+  "Install flagstone borders",
+  "Weed tiered beds",
+  "Setup new grade stakes",
+  "Setup new garden layouts",
+  "Survey property lines",
+  "Re-align rear fence section",
+  "Mortgage lump sum",
+  "Transfer from GIC to checking",
+  "Make arrangement for payment on regular withdrawal date",
+  "Final cleanup",
+  "Shredding",
+  "Sump plug install",
+  "Eavestrough replacement",
+  "Fascia repairs",
+  "Window trim",
+  "Scrape, repair, and paint",
+  "Pebbledash patch continued",
+  "Front door glass repair",
+];
+const DATA_VERSION = 'v8';
+const STORAGE_KEY  = 'orrery_' + DATA_VERSION;
+
+// Clear out any older version's data automatically
+['orrery_v1', 'orrery_v2', 'orrery_v3', 'orrery_v4', 'orrery_v5', 'orrery_v6', 'orrery_v7', 'orrery_v0'].forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+
+let state = { hobbies: JSON.parse(JSON.stringify(HOBBIES)), accs: [] };
+try {
+  const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+  if (s) {
+    state.hobbies = s.hobbies;
+    const userAdded = (s.accs || []).filter(a => !SEED_ACCS.includes(a));
+    state.accs = [...userAdded, ...SEED_ACCS];
+  } else {
+    state.accs = [...SEED_ACCS];
+  }
+} catch(e) { state.accs = [...SEED_ACCS]; }
+
+function persist() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ── CANVAS / ORRERY ───────────────────────────────────────────────────────────
+let activeId = null;
+let bodies = [];
+let history = [];
+const canvas = document.getElementById('orrery');
+const ctx    = canvas.getContext('2d');
+
+const ORBIT_TIERS = [0.20, 0.34, 0.47, 0.59, 0.71];
+
+function resize() {
+  // Canvas fills the space left of the panel (or full width when closed)
+  const panelW = document.body.classList.contains('panel-open') ? 340 : 0;
+  canvas.width  = window.innerWidth - panelW;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', () => { resize(); assignOrbits(); });
+
+function init() {
+  bodies = state.hobbies.map((h, i) => ({
+    ...h,
+    angle: (i / state.hobbies.length) * Math.PI * 2,
+    currentRadius: 0,
+    targetRadius: 0,
+  }));
+  history = state.hobbies.map(h => h.id);
+  resize();
+  assignOrbits();
+  animate(performance.now());
+}
+
+function assignOrbits() {
+  const R = Math.min(canvas.width, canvas.height) / 2;
+  bodies.forEach(b => {
+    const rank = history.indexOf(b.id);
+    b.targetRadius = ORBIT_TIERS[rank >= 0 ? rank : state.hobbies.length - 1] * R;
+  });
+}
+
+let lastTime = 0;
+function animate(ts) {
+  const dt = Math.min(ts - lastTime, 50);
+  lastTime = ts;
+  const cx = canvas.width  / 2;
+  const cy = canvas.height / 2;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  bodies.forEach(b => {
+    b.currentRadius += (b.targetRadius - b.currentRadius) * 0.045;
+    b.angle += b.speed * dt;
+  });
+
+  // orbit rings
+  bodies.forEach(b => {
+    const isInner = history.indexOf(b.id) === 0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, b.currentRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = isInner && activeId ? 'rgba(232,184,75,.4)' : 'rgba(200,146,42,.12)';
+    ctx.lineWidth   = isInner && activeId ? 1.5 : 0.8;
+    ctx.setLineDash(isInner && activeId ? [] : [4, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  drawCenter(cx, cy);
+
+  bodies.forEach(b => {
+    const x = cx + Math.cos(b.angle) * b.currentRadius;
+    const y = cy + Math.sin(b.angle) * b.currentRadius;
+    b._x = x; b._y = y;
+    drawBody(b, x, y);
+  });
+
+  requestAnimationFrame(animate);
+}
+
+function drawCenter(cx, cy) {
+  const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, 52);
+  grd.addColorStop(0,   'rgba(232,184,75,.25)');
+  grd.addColorStop(0.5, 'rgba(200,130,42,.12)');
+  grd.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, 52, 0, Math.PI*2);
+  ctx.fillStyle = grd; ctx.fill();
+
+  const core = ctx.createRadialGradient(cx, cy-4, 2, cx, cy, 34);
+  core.addColorStop(0,   '#fff8e8');
+  core.addColorStop(0.3, '#e8b84b');
+  core.addColorStop(0.7, '#c8922a');
+  core.addColorStop(1,   '#7a5518');
+  ctx.beginPath(); ctx.arc(cx, cy, 34, 0, Math.PI*2);
+  ctx.fillStyle = core; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 34, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(232,184,75,.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  const fs = Math.min(canvas.width, canvas.height) < 500 ? '10px' : '13px';
+  ctx.font = `bold ${fs} Cinzel, serif`;
+  ctx.fillStyle = '#0e0a06'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('FAMILY', cx, cy - 6);
+  ctx.font = '9px Cinzel, serif';
+  ctx.fillText('always present', cx, cy + 8);
+}
+
+function drawBody(b, x, y) {
+  const isActive = b.id === activeId;
+  const r = b.size + (isActive ? 5 : 0);
+
+  if (isActive) {
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
+    grd.addColorStop(0, 'rgba(232,184,75,.3)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(x, y, r*2.5, 0, Math.PI*2);
+    ctx.fillStyle = grd; ctx.fill();
+  }
+
+  const bg = ctx.createRadialGradient(x-r*.3, y-r*.3, r*.1, x, y, r);
+  bg.addColorStop(0,   lighten(b.color, 60));
+  bg.addColorStop(0.5, b.color);
+  bg.addColorStop(1,   darken(b.color, 40));
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = bg; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.strokeStyle = isActive ? 'rgba(232,184,75,.9)' : 'rgba(200,146,42,.4)';
+  ctx.lineWidth = isActive ? 2 : 1; ctx.stroke();
+
+  ctx.font = `${r * 1.1}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(b.emoji, x, y + 1);
+
+  const labelY = y + r + 14;
+  ctx.font = isActive ? `600 ${Math.min(13,r*.6)}px Caveat,cursive` : `${Math.min(11,r*.55)}px Caveat,cursive`;
+  ctx.fillStyle = isActive ? '#e8b84b' : 'rgba(240,230,204,.65)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const words = b.label.split(' ');
+  if (words.length <= 2) {
+    ctx.fillText(b.label, x, labelY);
+  } else {
+    const mid = Math.ceil(words.length / 2);
+    ctx.fillText(words.slice(0, mid).join(' '), x, labelY);
+    ctx.fillText(words.slice(mid).join(' '), x, labelY + 13);
+  }
+}
+
+function lighten(hex, amt) {
+  return `rgb(${Math.min(255,parseInt(hex.slice(1,3),16)+amt)},${Math.min(255,parseInt(hex.slice(3,5),16)+amt)},${Math.min(255,parseInt(hex.slice(5,7),16)+amt)})`;
+}
+function darken(hex, amt) {
+  return `rgb(${Math.max(0,parseInt(hex.slice(1,3),16)-amt)},${Math.max(0,parseInt(hex.slice(3,5),16)-amt)},${Math.max(0,parseInt(hex.slice(5,7),16)-amt)})`;
+}
+
+// ── INTERACTION ───────────────────────────────────────────────────────────────
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  for (const b of bodies) {
+    const dx = mx - b._x, dy = my - b._y;
+    if (dx*dx + dy*dy < (b.size+14)*(b.size+14)) {
+      activeId === b.id ? clearFocus() : setFocus(b.id);
+      return;
+    }
+  }
+  clearFocus();
+});
+
+function setFocus(id) {
+  activeId = id;
+  history = [id, ...history.filter(h => h !== id)];
+  document.body.classList.add('panel-open');
+  setTimeout(() => { resize(); assignOrbits(); }, 20);
+  switchTab('tasks');
+  renderPanel(id);
+  document.getElementById('hint').classList.add('hidden');
+  document.getElementById('clearBtn').classList.remove('hidden');
+}
+
+function clearFocus() {
+  activeId = null;
+  document.body.classList.remove('panel-open');
+  setTimeout(() => { resize(); assignOrbits(); }, 20);
+  document.getElementById('hint').classList.remove('hidden');
+  document.getElementById('clearBtn').classList.add('hidden');
+}
+
+// ── PANEL ─────────────────────────────────────────────────────────────────────
+function renderPanel(id) {
+  const h = state.hobbies.find(x => x.id === id);
+  document.getElementById('panelEmoji').textContent   = h.emoji;
+  document.getElementById('panelTitle').textContent   = h.label;
+  document.getElementById('panelSub').textContent     = h.sub;
+  document.getElementById('panelReminder').textContent = '⚠ ' + h.reminder;
+
+  // count all items recursively for progress
+  function countAll(items) {
+    let total = 0, done = 0;
+    items.forEach(it => {
+      total++; if (it.done) done++;
+      if (it.children && it.children.length) {
+        const c = countAll(it.children); total += c.total; done += c.done;
+      }
+    });
+    return { total, done };
+  }
+  const { total, done } = countAll(h.items);
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('panelProgressFill').style.width = pct + '%';
+  document.getElementById('panelProgressFill').style.background = h.color;
+  document.getElementById('panelProgressLabel').textContent = `${done} of ${total} done`;
+
+  const list = document.getElementById('panelList');
+  if (!h.items.length) {
+    list.innerHTML = '<div class="empty-msg">Nothing here yet — add something below.</div>';
+    return;
+  }
+  list.innerHTML = renderItems(h.items, id, [], 0);
+}
+
+function renderItems(items, hid, parentPath, depth) {
+  return items.map((item, idx) => {
+    const path = [...parentPath, idx];
+    const pathStr = path.join(',');
+    const hasChildren = item.children && item.children.length > 0;
+    const canNest = depth < 2;
+    const inputRowId = `sub-row-${hid}-${pathStr.replace(/,/g,'_')}`;
+    const delRowId   = `del-row-${hid}-${pathStr.replace(/,/g,'_')}`;
+    const shortText  = item.text.length > 36 ? item.text.slice(0,36)+'…' : item.text;
+    return `
+      <div class="panel-item depth-${depth} ${item.done ? 'done' : ''}" onclick="toggleItem('${hid}','${pathStr}')">
+        <input type="checkbox" ${item.done ? 'checked' : ''} onclick="event.stopPropagation();toggleItem('${hid}','${pathStr}')">
+        <span class="priority-dot p-${item.p}"></span>
+        <span class="item-text">${item.text}</span>
+        ${canNest ? `<button class="nest-btn" title="Add sub-task" onclick="event.stopPropagation();showSubInput('${hid}','${pathStr}',${depth})">⊕</button>` : ''}
+        <button class="del-btn" title="Delete" onclick="event.stopPropagation();deleteItem('${hid}','${pathStr}')">✕</button>
+      </div>
+      <div class="del-confirm-row depth-${depth}" id="${delRowId}" style="display:none">
+        <span>Delete "${shortText}"?</span>
+        <button class="del-yes" onclick="confirmDelete('${hid}','${pathStr}')">Delete</button>
+        <button class="del-no"  onclick="cancelDelete('${delRowId}')">Keep</button>
+      </div>
+      <div class="sub-input-row depth-${depth}" id="${inputRowId}" style="display:none">
+        <input id="sub-inp-${hid}-${pathStr.replace(/,/g,'_')}"
+               placeholder="sub-task…"
+               onkeydown="if(event.key==='Enter')commitSub('${hid}','${pathStr}');if(event.key==='Escape')hideSubInput('${inputRowId}')">
+        <button onclick="commitSub('${hid}','${pathStr}')">Add</button>
+        <button class="cancel-sub" onclick="hideSubInput('${inputRowId}')">✕</button>
+      </div>
+      ${hasChildren ? renderItems(item.children, hid, path, depth + 1) : ''}
+    `;
+  }).join('');
+}
+
+function showSubInput(hid, pathStr, depth) {
+  // hide any other open sub-inputs or delete confirms first
+  document.querySelectorAll('.sub-input-row, .del-confirm-row').forEach(el => el.style.display = 'none');
+  const rowId = `sub-row-${hid}-${pathStr.replace(/,/g,'_')}`;
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  row.style.display = 'flex';
+  const inp = document.getElementById(`sub-inp-${hid}-${pathStr.replace(/,/g,'_')}`);
+  if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
+}
+
+function hideSubInput(rowId) {
+  const row = document.getElementById(rowId);
+  if (row) row.style.display = 'none';
+}
+
+function commitSub(hid, pathStr) {
+  const inpId = `sub-inp-${hid}-${pathStr.replace(/,/g,'_')}`;
+  const inp = document.getElementById(inpId);
+  if (!inp) return;
+  const text = inp.value.trim(); if (!text) return;
+  const h = state.hobbies.find(x => x.id === hid);
+  const path = pathStr.split(',').map(Number);
+  const parent = getItemByPath(h.items, path);
+  if (!parent.children) parent.children = [];
+  parent.children.push({ text, done: false, p: 'med', children: [] });
+  persist();
+  renderPanel(hid);
+}
+
+function deleteItem(hid, pathStr) {
+  // close any open sub-inputs or other confirms
+  document.querySelectorAll('.sub-input-row, .del-confirm-row').forEach(el => el.style.display = 'none');
+  const rowId = `del-row-${hid}-${pathStr.replace(/,/g,'_')}`;
+  const row = document.getElementById(rowId);
+  if (row) row.style.display = 'flex';
+}
+
+function confirmDelete(hid, pathStr) {
+  const path = pathStr.split(',').map(Number);
+  const h = state.hobbies.find(x => x.id === hid);
+  if (path.length === 1) {
+    h.items.splice(path[0], 1);
+  } else {
+    const parentPath = path.slice(0, -1);
+    const parent = getItemByPath(h.items, parentPath);
+    parent.children.splice(path[path.length - 1], 1);
+  }
+  persist();
+  renderPanel(hid);
+}
+
+function cancelDelete(rowId) {
+  const row = document.getElementById(rowId);
+  if (row) row.style.display = 'none';
+}
+
+function getItemByPath(items, path) {
+  let cur = items;
+  let item;
+  for (let i = 0; i < path.length; i++) {
+    item = cur[path[i]];
+    if (i < path.length - 1) cur = item.children;
+  }
+  return item;
+}
+
+function toggleItem(hid, pathStr) {
+  const h = state.hobbies.find(x => x.id === hid);
+  const path = pathStr.split(',').map(Number);
+  const item = getItemByPath(h.items, path);
+  item.done = !item.done;
+  persist();
+  if (activeId === hid) renderPanel(hid);
+}
+
+function addItem() {
+  const inp = document.getElementById('addInput');
+  const pri = document.getElementById('priSel');
+  const text = inp.value.trim(); if (!text || !activeId) return;
+  const h = state.hobbies.find(x => x.id === activeId);
+  h.items.unshift({ text, done: false, p: pri.value, children: [] });
+  inp.value = '';
+  persist();
+  renderPanel(activeId);
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+let activeTab = 'tasks';
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabTasks').classList.toggle('active', tab === 'tasks');
+  document.getElementById('tabNotes').classList.toggle('active', tab === 'notes');
+  document.getElementById('panetasks').style.display = tab === 'tasks' ? 'block' : 'none';
+  document.getElementById('panenotes').style.display = tab === 'notes' ? 'flex' : 'none';
+  if (tab === 'notes' && activeId) renderNotes(activeId);
+}
+
+function renderNotes(hid) {
+  const h = state.hobbies.find(x => x.id === hid);
+  const el = document.getElementById('notesList');
+  if (!h.notes || !h.notes.length) {
+    el.innerHTML = '<div class="note-empty">No notes yet — write freely below.</div>';
+    return;
+  }
+  el.innerHTML = h.notes.map((n, i) => `
+    <div class="note-card">
+      <div class="note-card-head">
+        <span class="note-card-title">${n.title || 'Untitled'}</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span class="note-card-date">${n.date || ''}</span>
+          <button class="note-del-btn" onclick="deleteNote('${hid}',${i})">✕</button>
+        </span>
+      </div>
+      <div class="note-card-body">${n.body}</div>
+    </div>
+  `).join('');
+}
+
+function addNote() {
+  if (!activeId) return;
+  const titleEl = document.getElementById('noteTitleInput');
+  const bodyEl  = document.getElementById('noteBodyInput');
+  const title = titleEl.value.trim();
+  const body  = bodyEl.value.trim();
+  if (!body) return;
+  const h = state.hobbies.find(x => x.id === activeId);
+  if (!h.notes) h.notes = [];
+  const now = new Date();
+  const date = now.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+  h.notes.unshift({ title: title || 'Note', body, date });
+  titleEl.value = ''; bodyEl.value = '';
+  persist();
+  renderNotes(activeId);
+}
+
+function deleteNote(hid, idx) {
+  const h = state.hobbies.find(x => x.id === hid);
+  if (!confirm(`Delete this note?`)) return;
+  h.notes.splice(idx, 1);
+  persist();
+  renderNotes(hid);
+}
+
+// ── REFLECTION ────────────────────────────────────────────────────────────────
+function openReflect() {
+  document.getElementById('reflectQuote').textContent =
+    REFLECT_QUOTES[Math.floor(Math.random() * REFLECT_QUOTES.length)];
+  renderAccs();
+  document.getElementById('reflectBackdrop').classList.add('open');
+}
+function closeReflect() { document.getElementById('reflectBackdrop').classList.remove('open'); }
+
+function renderAccs() {
+  const el = document.getElementById('accList');
+  el.innerHTML = state.accs.length
+    ? state.accs.map(a => `<li>${a}</li>`).join('')
+    : '<li class="empty-acc">Nothing saved yet — add your first below.</li>';
+}
+
+function saveAcc() {
+  const ta = document.getElementById('accInput');
+  const t = ta.value.trim(); if (!t) return;
+  state.accs.unshift(t); ta.value = '';
+  persist(); renderAccs();
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function openSearch() {
+  document.getElementById('searchOverlay').classList.add('open');
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchResults').innerHTML = '';
+  setTimeout(() => document.getElementById('searchInput').focus(), 60);
+}
+
+function closeSearch() {
+  document.getElementById('searchOverlay').classList.remove('open');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlight(text, query) {
+  if (!query) return escapeHtml(text);
+  const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  return escapeHtml(text).replace(re, '<mark>$1</mark>');
+}
+
+function collectTaskMatches(items, query, hobby, results, depth) {
+  for (const item of items) {
+    if (item.text.toLowerCase().includes(query)) {
+      results.push({ hobbyId: hobby.id, hobbyLabel: hobby.label, hobbyEmoji: hobby.emoji,
+        tab: 'tasks', text: item.text, type: depth > 0 ? 'sub-task' : 'task' });
+    }
+    if (item.children && item.children.length) {
+      collectTaskMatches(item.children, query, hobby, results, depth + 1);
+    }
+  }
+}
+
+function runSearch(raw) {
+  const query = raw.trim().toLowerCase();
+  const el = document.getElementById('searchResults');
+  if (!query) { el.innerHTML = ''; return; }
+
+  const results = [];
+  for (const hobby of state.hobbies) {
+    // tasks
+    collectTaskMatches(hobby.items || [], query, hobby, results, 0);
+    // notes: search title + body
+    for (const note of (hobby.notes || [])) {
+      const inTitle = note.title.toLowerCase().includes(query);
+      const inBody  = note.body.toLowerCase().includes(query);
+      if (inTitle || inBody) {
+        // find a snippet from body if match is there
+        let snippet = '';
+        if (inBody) {
+          const idx = note.body.toLowerCase().indexOf(query);
+          const start = Math.max(0, idx - 40);
+          const end   = Math.min(note.body.length, idx + query.length + 60);
+          snippet = (start > 0 ? '…' : '') + note.body.slice(start, end) + (end < note.body.length ? '…' : '');
+        }
+        results.push({ hobbyId: hobby.id, hobbyLabel: hobby.label, hobbyEmoji: hobby.emoji,
+          tab: 'notes', text: note.title, snippet, type: 'note' });
+      }
+    }
+  }
+
+  if (!results.length) {
+    el.innerHTML = `<div class="search-empty">Nothing found for "${escapeHtml(raw)}"</div>`;
+    return;
+  }
+
+  el.innerHTML = results.map((r, i) =>
+    `<div class="search-result-item" onclick="searchGoto('${r.hobbyId}','${r.tab}')">
+      <span class="sr-hobby">${escapeHtml(r.hobbyEmoji)} ${escapeHtml(r.hobbyLabel)}</span>
+      <span class="sr-match">${highlight(r.text, raw.trim())}</span>
+      ${r.snippet ? `<span class="sr-match" style="font-size:.78rem;opacity:.7">${highlight(r.snippet, raw.trim())}</span>` : ''}
+      <span class="sr-type">${r.type}</span>
+    </div>`
+  ).join('');
+}
+
+function searchGoto(hobbyId, tab) {
+  closeSearch();
+  setFocus(hobbyId);
+  // switch to the right tab after panel opens
+  setTimeout(() => switchTab(tab), 80);
+}
+
+// close search on backdrop click
+document.getElementById('searchOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('searchOverlay')) closeSearch();
+});
+
+init();
+</script>
+</body>
+</html>
